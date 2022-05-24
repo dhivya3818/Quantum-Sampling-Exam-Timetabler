@@ -20,133 +20,168 @@ Things to do:
  - Format code so that it conforms with PEP 8
 """
 
-from dimod import BinaryQuadraticModel, ConstrainedQuadraticModel, Binary, quicksum
-from collections import defaultdict
-from copy import deepcopy
-import dwavebinarycsp
-import itertools
-from dwave.system import LeapHybridCQMSampler
-
-
+import networkx as nx
 from dwave.system.composites import EmbeddingComposite
 from dwave.system.samplers import DWaveSampler
+from bqm_builder import BqmBuilder
+from preprocessor import get_graph_data
 
 # Overall model variables: problem size
 num_days = 18
-num_exams = 80
 # num_days = 3
-# num_exams = 7
-# clashes = [{1: 35, 5: 3}, {0: 35, 2: 3}, {1: 3, 4: 5}, {4: 15}, {2: 5, 3: 15}, {0: 3, 6: 12}, {5: 12}]
 
-stu_file = open("./tests/hec-s-92-2.stu", 'r')
-crs_file = open("./tests/EdHEC92.sol", 'r')
+# graph = nx.Graph()
 
-common_classes = []
+# course_sizes = [40, 60, 25, 40, 30, 22, 25]
+# for i in range(num_exams):
+#     graph.add_node(i, size=course_sizes[i])
 
-for ind, line in enumerate(stu_file):
-    classes = line.split()
+# resources = { 'classrooms': [30, 60, 30] }
 
-    if classes not in common_classes:
-        common_classes.append(classes)
+# graph.add_edge(0, 1, weight=35)
+# graph.add_edge(0, 5, weight=3)
+# graph.add_edge(1, 2, weight=3)
+# graph.add_edge(2, 4, weight=5)
+# graph.add_edge(3, 4, weight=15)
+# graph.add_edge(5, 6, weight=12)
 
-solution = {}
-for line in crs_file.readlines():
-    split_line = line.strip().split()
-    if int(split_line[1]) in solution:
-        arr = solution[int(split_line[1])]
-        arr.append(split_line[0])
-        solution[int(split_line[1])] = arr
-    else:
-        solution[int(split_line[1])] = [split_line[0]]
+# stu_file = open("./tests/hec-s-92-2.stu", 'r')
+# crs_file = open("./tests/EdHEC92.sol", 'r')
 
-clashes = {}
+# common_classes = []
 
-def add_to_clashes(course1, course2):
+# for ind, line in enumerate(stu_file):
+#     classes = line.split()
 
-    if course1 not in clashes:
-        clashes[course1] = {}
+#     if classes not in common_classes:
+#         common_classes.append(classes)
 
-    if course2 in clashes[course1]:
-        clashes[course1][course2] += 1
-    else:
-        clashes[course1][course2] = 1
+# solution = {}
+# for line in crs_file.readlines():
+#     split_line = line.strip().split()
+#     if int(split_line[1]) in solution:
+#         arr = solution[int(split_line[1])]
+#         arr.append(split_line[0])
+#         solution[int(split_line[1])] = arr
+#     else:
+#         solution[int(split_line[1])] = [split_line[0]]
 
-for classes in common_classes:
-    if len(classes) == 1:
+# clashes = {}
+
+# def add_to_clashes(course1, course2):
+
+#     if course1 not in clashes:
+#         clashes[course1] = {}
+
+#     if course2 in clashes[course1]:
+#         clashes[course1][course2] += 1
+#     else:
+#         clashes[course1][course2] = 1
+
+# for classes in common_classes:
+#     if len(classes) == 1:
+#         continue
+
+#     for courses in itertools.combinations(classes, 2):
+#         (course1, course2) = courses
+#         course1 = int(str(course1)[-2:])
+#         course2 = int(str(course2)[-2:])
+
+#         add_to_clashes(course1, course2)
+#         add_to_clashes(course2, course1)
+
+
+# # Find composite index into 1D list for (exam_index, day_index)
+# def get_index(exam_index, day_index):
+#     # return (exam_index - 1) * num_days + day_index
+#     return exam_index * num_days + day_index
+
+# # Inverse of get_index - given a composite index in a 1D list, return the
+# # exam_index and day_index
+# def get_exam_and_day(index):
+#     exam_index, day_index = divmod(index, num_days)
+#     return exam_index, day_index
+
+# csp = dwavebinarycsp.ConstraintSatisfactionProblem(dwavebinarycsp.BINARY)
+
+# def sums_to_one(*args):
+#     print("SUMS TO ONE:", args)
+#     return sum(args) == 1
+
+# for exam in range(num_exams):
+#     exam_days = {f'v_{exam},{day}' for day in range(num_days)}
+#     print("exam days", exam_days)
+#     csp.add_constraint(sums_to_one, exam_days)
+
+#-------------------------------------------------------------------------------
+
+print("\nGetting graph data")
+graph = get_graph_data("hec-s-92-2")
+num_exams = len(graph.nodes)
+resources = {}
+
+print("\nGetting BQM with builder...")
+bqm = BqmBuilder(graph, num_days, resources).get_bqm()
+
+print("\nSending to DWave Sampler...")
+sampler = EmbeddingComposite(DWaveSampler())
+results = sampler.sample(bqm, num_reads=1000, label='Example - Exam Timetabling')
+   
+for ind, record in enumerate(reversed(results.record)):
+    if ind % 400 != 0:
         continue
 
-    for courses in itertools.combinations(classes, 2):
-        (course1, course2) = courses
-        course1 = int(str(course1)[-2:])
-        course2 = int(str(course2)[-2:])
+    print("\n Iteration {} - Energy: {}".format(ind, record.energy))
+    sample = record.sample
+    for k in range(num_days):
+        print("Day {}:".format(k + 1), [i for i in range(num_exams) if sample[results.variables.index(f'v_{i},{k}')] == 1])
 
-        add_to_clashes(course1, course2)
-        add_to_clashes(course2, course1)
-
-
-# print("Graph:", clashes)
-
-
-# Find composite index into 1D list for (exam_index, day_index)
-def get_index(exam_index, day_index):
-    # return (exam_index - 1) * num_days + day_index
-    return exam_index * num_days + day_index
-
-# Inverse of get_index - given a composite index in a 1D list, return the
-# exam_index and day_index
-def get_exam_and_day(index):
-    exam_index, day_index = divmod(index, num_days)
-    return exam_index, day_index
-
-def sums_to_one(*args):
-    return sum(args) == 1
-
-print("\nBuilding constrained quadratic model...")
-cqm = ConstrainedQuadraticModel()
-
-print("\nAdding variables....")
-v = [[Binary(f'v_{i},{k}') for k in range(num_days)] for i in range(num_exams)]
-
-print("\nAdding one-hot constraints...")
-for i in range(num_exams):
-    cqm.add_discrete([f'v_{i},{k}' for k in range(num_days)], label=f"one-hot-node-{i}")
+sample = results.first.sample
+print("\nFinal result - Energy {}".format(results.first.energy))
+for k in range(num_days):
+    print("Day {}:".format(k + 1), [i for i in range(num_exams) if sample[f'v_{i},{k}'] == 1])
+#-----------------------------------------------------------------------------------------------
+# csp.add_constraint(sums_to_one, exam_days)
+# print("added constraint", exam)
+# for i in range(num_exams):
+#     cqm.add_discrete([f'v_{i},{k}' for k in range(num_days)], label=f"one-hot-node-{i}")
 
 # print("\nAdding partition size constraint...")
 # for p in range(num_days):
 #     cqm.add_constraint(quicksum(v[n][p] for n in range(num_exams)) == num_exams/num_days, label='partition-size-{}'.format(p))
 
-# Objective: minimize edges between partitions
-print("\nAdding objective...")
-min_edges = []
-for i in clashes:
-    for j in clashes[i]:
-        for p in range(num_days):
-            # print("objective:", v[i - 1][p]+v[j - 1][p]+clashes[i][j]*v[i - 1][p]*v[j - 1][p])
-            # TODO: Add how to weigh the different constraints differently
-            min_edges.append(v[i - 1][p]+v[j - 1][p]+clashes[i][j]*v[i - 1][p]*v[j - 1][p])
-            # cqm.add_constraint(v[i - 1][p] * v[j - 1][p] == 0, label="no-clash-{}-{}-day{}".format(i, j, p))
+# min_edges = []
+# for (i, j) in graph.edges:
+#     for p in range(num_days):
+#         break
+#         # print("weight", v[i][p])
+#         # print("objective:", graph[i][j]["weight"]*v[i][p]*v[j][p])
+#         # TODO: Add how to weigh the different constraints differently
+#         # min_edges.append(v[i - 1][p]+v[j - 1][p]+clashes[i][j]*v[i - 1][p]*v[j - 1][p])
+#         # cqm.add_constraint(v[i - 1][p] * v[j - 1][p] == 0, label="no-clash-{}-{}-day{}".format(i, j, p))
 
-cqm.set_objective(sum(min_edges))
-sampler = LeapHybridCQMSampler()
+# cqm.set_objective(sum(min_edges))
+# sampler = LeapHybridCQMSampler()
 
-print("\nSending to the solver...")
+# print("\nSending to the solver...")
     
-# Solve the CQM problem using the solver
-sampleset = sampler.sample_cqm(cqm, label='Example - Graph Partitioning')
-sample = sampleset.filter(lambda row: row.is_feasible).first.sample
-print("Feasible Sample:", sample)
+# # Solve the CQM problem using the solver
+# sampleset = sampler.sample_cqm(cqm, label='Example - Graph Partitioning')
+# sample = sampleset.filter(lambda row: row.is_feasible).first.sample
+# print("Feasible Sample:", sample)
 
-print("\nBuilding schedule and checking constraints...\n")
+# print("\nBuilding schedule and checking constraints...\n")
 
-for k in range(num_days):
-    partition = [i + 1 for i in range(num_exams) if sample[f'v_{i},{k}'] == 1]
-    print("Day {}:".format(k + 1), [i + 1 for i in range(num_exams) if sample[f'v_{i},{k}'] == 1])
-    for courses in itertools.combinations(partition, 2):
-        (course1, course2) = courses
-        if course2 in clashes[course1]:
-            print("CLASH! of exams {} and {} of {}".format(course1, course2, clashes[course1][course2]))
+# for k in range(num_days):
+#     partition = [i + 1 for i in range(num_exams) if sample[f'v_{i},{k}'] == 1]
+#     print("Day {}:".format(k + 1), [i + 1 for i in range(num_exams) if sample[f'v_{i},{k}'] == 1])
+#     for courses in itertools.combinations(partition, 2):
+#         (course1, course2) = courses
+#         if course2 in clashes[course1]:
+#             print("CLASH! of exams {} and {} of {}".format(course1, course2, clashes[course1][course2]))
 # print("Solution:", solution)
 
+#--------------------------------------------------------------------------------
 # Hard constraint: Each exam has to be scheduled once
 # csp = dwavebinarycsp.ConstraintSatisfactionProblem(dwavebinarycsp.BINARY)
 # print("print csp before", csp)

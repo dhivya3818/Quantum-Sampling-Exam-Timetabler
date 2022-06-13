@@ -2,16 +2,23 @@ import dimod
 from collections import defaultdict
 import dwavebinarycsp
 from itertools import combinations, product
+import networkx as nx
+import plotly.express as px
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.sparse import coo_matrix
+import pandas as pd
 
 class BqmBuilder:
 
-    def __init__(self, graph, num_days, resources, weights=None, one_hot_scale=500, classroom_constraint_scale=100):
-        self.graph = graph
-        self.num_days = num_days
-        self.num_exams = len(graph.nodes)
+    def __init__(self, et_problem, weights=None, one_hot_scale=16, classroom_constraint_scale=16):
+        self.graph = et_problem["graph"]
+        self.num_days = et_problem["num_days"]
+        self.num_exams = len(self.graph.nodes)
         self.one_hot_scale = one_hot_scale
+        self.num_students = et_problem["num_students"]
         self.classroom_constraint_scale = classroom_constraint_scale
-        self.resources = resources
+        self.resources = et_problem["resources"]
         if 'classrooms' in self.resources:
             self.resources['classrooms'].sort()
 
@@ -20,9 +27,9 @@ class BqmBuilder:
 
     def get_one_hot_constraints(self):
         print("\nAdding one-hot constraints...")
-        return [dimod.generators.combinations([f'v_{exam},{k}' for k in range(self.num_days)], 1) for exam in range(self.num_exams)]
+        return [dimod.generators.combinations([f'v_{exam},{k}' for k in range(self.num_days)], 1) for exam in self.graph.nodes]
     
-    def get_minimised_edges(self):
+    def get_clashes_constraints(self):
         print("\nAdding minimised edges...")
         J = defaultdict(int)
 
@@ -34,8 +41,8 @@ class BqmBuilder:
                     if new_day >= self.num_days:
                         break
                     
-                    J[f'v_{i},{day}', f'v_{j},{new_day}'] += weight * self.graph[i][j]["weight"]
-                    J[f'v_{j},{day}', f'v_{i},{new_day}'] += weight * self.graph[i][j]["weight"]
+                    J[f'v_{i},{day}', f'v_{j},{new_day}'] += (weight * self.graph[i][j]["weight"]) / self.num_students
+                    J[f'v_{j},{day}', f'v_{i},{new_day}'] += (weight * self.graph[i][j]["weight"]) / self.num_students
         
         return dimod.BQM(J, vartype='BINARY')
 
@@ -68,8 +75,8 @@ class BqmBuilder:
     def get_bqm(self):
         print("\nBuilding BQM...")
         one_hot_bqms = self.get_one_hot_constraints()
-        bqm = self.get_minimised_edges()
-
+        bqm = self.get_clashes_constraints()
+        
         for one_hot in one_hot_bqms:
             one_hot.scale(self.one_hot_scale)
             bqm.update(one_hot)

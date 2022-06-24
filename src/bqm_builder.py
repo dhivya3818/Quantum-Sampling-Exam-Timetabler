@@ -11,7 +11,7 @@ import pandas as pd
 
 class BqmBuilder:
 
-    def __init__(self, et_problem, weights=None, one_hot_scale=16, classroom_constraint_scale=16):
+    def __init__(self, et_problem, weights=None, one_hot_scale=8, classroom_constraint_scale=8):
         self.graph = et_problem["graph"]
         self.num_days = et_problem["num_days"]
         self.num_exams = len(self.graph.nodes)

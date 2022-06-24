@@ -1,6 +1,3 @@
-from random import sample
-
-
 def write_to_file(sample, filename, num_days, exams):
     timetable = []
     for k in range(num_days):

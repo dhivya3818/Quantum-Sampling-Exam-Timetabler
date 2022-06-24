@@ -54,25 +54,25 @@ class Timetable:
         return len(count_allocated_exams) == len(self.graph.nodes) and all(count == 1 for count in count_allocated_exams.values())
 
     def check_validity(self):
-        valid_solution = ["Yes", "Yes", "Yes"]
+        valid_solution = []
 
         print("\nChecking all exams allocated exactly once...")
         if not self.check_one_hot():
             print("\nSolution fails check: exams not allocated exactly once!")
-            valid_solution[0] = "No"
+            valid_solution.append("C1")
 
         print("\nChecking no clashing exams are on the same day...")
         penalty = self.check_hard_clashes()
         if penalty > 0:
             print("\nSolution fails check: penalty " + str(penalty))
-            valid_solution[1] = "No"
+            valid_solution.append("C2")
 
         if len(self.resources) != 0:
             print("\nChecking solution satisfies classroom constraints...")
             days = self.check_classroom_constraints()
             if len(days) > 0:
                 print("\nSolution fails check: classroom constraints broken on days {}".format(days))
-                valid_solution[2] = "No"
+                valid_solution.append("C4")
 
         # if valid_solution:
         #     print("\nSolution passes all constraint checks!")

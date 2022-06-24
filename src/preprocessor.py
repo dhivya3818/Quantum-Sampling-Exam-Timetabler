@@ -2,7 +2,8 @@ import networkx as nx
 from collections import Counter
 from itertools import combinations
 
-timeslots = {"hec-s-92-2":18, "hec-s-92":18 }
+timeslots = {"hec-s-92-2":18, "hec-s-92":18, "car-f-92":32, "ute-s-92":10, "yor-f-83-3": 21, "tre-s-92": 23, "lse-f-91": 18,
+"uta-s-92-2": 35, "sta-f-83-3": 35, "sta-f-83": 13, "pur-s-93": 42, "kfu-s-93": 20, "ear-f-83": 24, "car-f-92": 32, "car-s-91": 35 }
 
 def build_graph(exams, clashes):
     graph = nx.Graph()
@@ -23,7 +24,7 @@ def get_graph_data(filename):
         file_path = "test_data/" + filename
     else:
         file_path = "toronto_benchmark_data/" + filename
-        num_days = timeslots[filename[:-3]]
+        num_days = timeslots[filename[:-4]]
         resources = {}
         starting_index = 0
 
@@ -57,6 +58,4 @@ def get_graph_data(filename):
         clashes += Counter(clashing_pairs)
 
     graph = build_graph(exams_counter, clashes)
-
-    et_problem = { "graph": graph, "num_days": int(num_days), "resources": resources, "num_students": (len(input_lines) - starting_index)}
-    return et_problem
+    return { "graph": graph, "num_days": int(num_days), "resources": resources, "num_students": (len(input_lines) - starting_index)}

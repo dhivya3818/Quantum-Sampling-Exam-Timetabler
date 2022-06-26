@@ -1,65 +1,65 @@
-<!-- **Interested in contributing a code example?** 
-
-Please take a look at our [contribution guidelines](CONTRIBUTING.md) before
-getting started. Thanks! -->
-
-<!-- Before submitting your code, please delete the above code contribution
-instructions and this comment as they will not be relevant in your code 
-example README.md.-->
-
 # Exam Timetabling
-<!-- 
-Describe your example and specify what it is demonstrating. Consider the
-following questions:
 
-* Is it pedagogical or a usable application?
-* Does it belong to a particular domain such as material simulation or logistics? 
-* What level of Ocean proficiency does it target (beginner, advanced, pro)? 
+This app demonstrates how exam timetables can be optimised using D-Wave's Quantum annealers.
 
-A clear description allows us to properly categorize your example.
+Given a list of exams being sit by each student, we try to schedule these exams across a specified number of time slots so that conflicting exams (i.e. exams with shared resources such as students, classrooms, etc.) are spread out as much as possible.
 
-Images are encouraged. If your example produces a visualization, consider
-displaying it here.
-
-![D-Wave Logo](dwave_logo.png)
+Here is an example showing a timetable of 10 exams over 4 days being optimised by the quantum computer, across 1000 reads:
+![Exam Timetable](exam-timetable.gif)
 
 ## Usage
 
-A simple command that runs your program. For example,
+Make sure to install requirements in your own developer environment with:
+```bash
+pip install -r requirements.txt
+``` 
+
+To run the exam timetabler, run the command:
 
 ```bash
-python <demo_name>.py
+python exam_timetabler.py -f <filename> -s <solver>
 ```
 
-If your example requires user input, make sure to specify any input limitations.
+The parameters ``filename`` refers to example problems that can be found in the **timetabling_problems** folder, and ``solver`` refers to the type of solver that is used to solve the problem, which can be found in **exam-timetabler.py**. If not specified, the program defaults to using D-Wave's Quantum Solver to solve the problem.
+
+To view the visualisation, which optimises timetables using the Quantum Solver, run:
+
+```bash
+python app.py
+```
+
 
 ## Code Overview
 
-A general overview of how the code works.
+In `exam-timetabler.py`, we can use D-Wave's Quantum Annealing Solver to solve exam timetabling problems (examples of which are in folder **timetabling_problems**) with the following constraints:
 
-We prefer descriptions in bite-sized bullet points:
+1. Each exam has to be allocated exactly once.
+2. Conflicting exams (exams with shared students) cannot be allocated to the same day.
+3. Conflicting exams need to be spread out as much as possible (softer version of constraint 2).
+4. **(Optional)** Sizes of exams allocated to a specific day has to be within the amount of classroom capacity of that day. 
 
-* Here's an example bullet point
+### Example of Constraint 4
+Exams being sat by 30 and 50 students in one day, cannot be allocated if there are 2 classrooms of sizes 40 and 40 available on that day. If classroom sizes were 40 and 50 however, they can be allocated and this constraint is satisfied.
+
 
 ## Code Specifics
 
-Notable parts of the code implementation.
+The code in the `src` folder is called by `exam-timetabler.py` and has the following functionality:
 
-This is the place to:
+* `preprocessor.py` takes the exam timetabling problem as input and returns the intermediate graphical representation of the problem.
+* `bqm_builder.py` builds the [BQM](https://docs.ocean.dwavesys.com/en/stable/concepts/bqm.html) from the intermediate representation of the problem.
+* `cqm_builder.py` builds the [CQM](https://docs.ocean.dwavesys.com/en/stable/concepts/cqm.html) from the intermediate representation of the problem (used only when calling Leap's Hybrid Solver).
+* `timetable.py` provides validity checks for a Timetable object, which is created from results of a sampler.
+* `utils.py` contains utility functions used to (1) write solutions to file and (2) calculate the conflict density of a problem.
+* `visualisation.py` uses [Plotly](https://plotly.com/) to visualise samples returned from the annealing process.
 
-* Highlight a part of the code implementation
-* Talk about unusual or potentially difficult parts of the code
-* Explain a code decision
-* Explain how parameters were tuned
+There is also a [Dash](https://dash.plotly.com/) frontend for this application in `app.py`, which displays plots from `visualisation.py`.
 
-Note: there is no need to repeat everything that is already well-documented in
-the code.
-
-## References
+<!-- ## References
 
 A. Person, "Title of Amazing Information", [short link
-name](https://example.com/)
+name](https://example.com/) -->
 
 ## License
 
-Released under the Apache License 2.0. See [LICENSE](LICENSE) file. -->
+Released under the Apache License 2.0. See [LICENSE](LICENSE) file.

@@ -78,13 +78,6 @@ def sample_and_get_results(type, qm, et_problem, filename, write=False):
     if type == "qa":
         dwave.inspector.show(results)
 
-    # for ind, record in enumerate(reversed(results.record)):
-    #     if ind % 100 != 0:
-    #         continue
-    #     sample = record.sample
-        # for k in range(et_problem["num_days"]):
-        #     print("Day {}:".format(k + 1), [i for i in et_problem["graph"].nodes if sample[results.variables.index(f'v_{i},{k}')] == 1])
-
     best_sample = results.first.sample
     timetable = Timetable(et_problem, best_sample).check_validity()
     print("\nFinal Timetable")

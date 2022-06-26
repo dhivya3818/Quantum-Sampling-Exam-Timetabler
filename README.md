@@ -1,10 +1,11 @@
 # Exam Timetabling
 
-This app demonstrates how exam timetables can be optimised using D-Wave's Quantum annealers.
+This app demonstrates how exam timetables can be optimised using D-Wave's Quantum Annealers.
 
-Given a list of exams being sit by each student, we try to schedule these exams across a specified number of time slots so that conflicting exams (i.e. exams with shared resources such as students, classrooms, etc.) are spread out as much as possible.
+Given a list of exams being sat by each student, we try to schedule these exams across a specified number of time slots so that conflicting exams (i.e. exams with shared resources such as students, classrooms, etc.) are spread out as much as possible.
 
 Here is an example showing a timetable of 10 exams over 4 days being optimised by the quantum computer, across 1000 reads:
+
 ![Exam Timetable](exam-timetable.gif)
 
 ## Usage
@@ -20,7 +21,7 @@ To run the exam timetabler, run the command:
 python exam_timetabler.py -f <filename> -s <solver>
 ```
 
-The parameters ``filename`` refers to example problems that can be found in the **timetabling_problems** folder, and ``solver`` refers to the type of solver that is used to solve the problem, which can be found in **exam-timetabler.py**. If not specified, the program defaults to using D-Wave's Quantum Solver to solve the problem.
+The parameters ``<filename>`` refers to example problems that can be found in the **timetabling_problems** folder, and ``<solver>`` refers to the type of solver that is used to solve the problem, which can be found in **exam-timetabler.py**. If not specified, the program defaults to using D-Wave's Quantum Solver to solve the problem.
 
 To view the visualisation, which optimises timetables using the Quantum Solver, run:
 

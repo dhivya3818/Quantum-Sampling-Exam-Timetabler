@@ -1,6 +1,7 @@
 from dimod import Binary, BQM, ConstrainedQuadraticModel, DiscreteQuadraticModel, quicksum
-import time 
+import time
 from collections import defaultdict
+
 
 class CqmBuilder:
 
@@ -20,37 +21,41 @@ class CqmBuilder:
     def add_one_hot_constraints(self):
         print("\nAdding one-hot constraints...")
         for i in self.graph.nodes:
-            self.cqm.add_discrete([f'v_{i},{k}' for k in range(self.num_days)], label=f"one-hot-node-{i}")
+            self.cqm.add_discrete([f'v_{i},{k}' for k in range(
+                self.num_days)], label=f"one-hot-node-{i}")
         # for i in self.graph.nodes:
         #     self.cqm.add_variable(self.num_days, label=i)
-    
+
     # def add_partition_size_constraint(self):
     #     print("\nAdding partition size constraint...")
     #     for p in range(self.num_days):
     #         self.cqm.add_constraint(quicksum(self.v[i][p] for i in self.graph.nodes) == self.num_exams/self.num_days, label='partition-size-{}'.format(p))
 
     def set_objective(self):
-        print("\nSetting objective...")        
+        print("\nSetting objective...")
         min_edges = []
         J = defaultdict(int)
 
         for (i, j) in self.graph.edges:
             for day in range(self.num_days):
                 for ind, weight in enumerate(self.weights):
-                    
+
                     new_day = day + ind
                     if ind == 0:
-                        self.cqm.add_constraint(self.v[i][day] * self.v[j][day] == 0, label="no-clash-{}-{}-day{}".format(i, j, day))
+                        self.cqm.add_constraint(
+                            self.v[i][day] * self.v[j][day] == 0, label="no-clash-{}-{}-day{}".format(i, j, day))
                         # min_edges.append(self.v[i][day] + self.v[j][new_day] + weight * self.graph[i][j]["weight"] * self.v[i][day] * self.v[j][new_day])
 
                     if new_day >= self.num_days:
                         break
-                    
-                    J[f'v_{i},{day}', f'v_{j},{new_day}'] += (weight * self.graph[i][j]["weight"])
-                    J[f'v_{j},{day}', f'v_{i},{new_day}'] += (weight * self.graph[i][j]["weight"])
+
+                    J[f'v_{i},{day}',
+                      f'v_{j},{new_day}'] += (weight * self.graph[i][j]["weight"])
+                    J[f'v_{j},{day}',
+                      f'v_{i},{new_day}'] += (weight * self.graph[i][j]["weight"])
                     # min_edges.append(self.v[i][day] + self.v[j][new_day] + weight * self.graph[i][j]["weight"] * self.v[i][day] * self.v[j][new_day])
                     # min_edges.append(self.v[i][new_day] + self.v[j][day] + weight * self.graph[i][j]["weight"] * self.v[i][new_day] * self.v[j][day])
-        
+
         # print("min edges", min_edges)
         start = time.time()
         # self.cqm.set_objective(sum(min_edges))
@@ -62,7 +67,6 @@ class CqmBuilder:
         self.cqm.set_objective(BQM(J, vartype='BINARY'))
         # print("objective J", self.cqm.objective)
         print("Time taken to set objective ", str((time.time() - start) / 60))
-
 
     def get_cqm(self):
         print("\nBuilding CQM...")

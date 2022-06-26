@@ -1,4 +1,4 @@
-# Copyright [2022] [name of copyright owner]
+# Copyright 2022 Dhivya Ravindran
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,20 +23,16 @@ Things to do:
 import hybrid
 import dwave.inspector
 import neal
-import networkx as nx
 from dwave.system.composites import EmbeddingComposite, FixedEmbeddingComposite
 from dwave.system.samplers import DWaveSampler
 from dwave.system import LeapHybridSampler
-from postprocessor import write_to_file
+from utils import write_to_file
 from preprocessor import get_graph_data
 from bqm_builder import BqmBuilder
-from solution import Timetable
+from cqm_builder import CqmBuilder
+from timetable import Timetable
 from greedy import SteepestDescentSampler
-
-def get_conflict_density(graph):
-    adj_matrix = nx.adjacency_matrix(graph).todense().tolist()
-    conflict_matrix = [[int(x > 0) for x in row] for row in adj_matrix]
-    return sum(row.count(1) for row in conflict_matrix) / (len(conflict_matrix) ** 2)
+import sys, getopt
 
 def sample_and_get_results(type, qm, et_problem, filename, write=False):
 
@@ -80,24 +76,47 @@ def sample_and_get_results(type, qm, et_problem, filename, write=False):
     if type == "qa":
         dwave.inspector.show(results)
         
-    for ind, record in enumerate(reversed(results.record)):
-        if ind % 100 != 0:
-            continue
-        sample = record.sample
-        for k in range(et_problem["num_days"]):
-            print("Day {}:".format(k + 1), [i for i in et_problem["graph"].nodes if sample[results.variables.index(f'v_{i},{k}')] == 1])
+    # for ind, record in enumerate(reversed(results.record)):
+    #     if ind % 100 != 0:
+    #         continue
+    #     sample = record.sample
+        # for k in range(et_problem["num_days"]):
+        #     print("Day {}:".format(k + 1), [i for i in et_problem["graph"].nodes if sample[results.variables.index(f'v_{i},{k}')] == 1])
 
     best_sample = results.first.sample
-    timetable = Timetable(et_problem, record).check_validity()
+    timetable = Timetable(et_problem, best_sample).check_validity()
+    print("\nFinal Timetable")
+    for k in range(et_problem["num_days"]):
+        print("Day {}:".format(k + 1), [i for i in et_problem["graph"].nodes if best_sample[f'v_{i},{k}'] == 1])
 
     if write:
         write_to_file(best_sample, filename + "-" + type, et_problem["num_days"], et_problem["graph"].nodes)
 
     print("\nFinal result - Energy {}".format(results.first.energy))
-
     return timetable
 
-filename = "med-02.txt"
-et_problem = get_graph_data(filename)
-bqm = BqmBuilder(et_problem).get_bqm()
-timetable = sample_and_get_results("qa", bqm, et_problem, filename)
+
+if __name__ == "__main__":
+    filename = "small-01.txt"
+    solver = "qa"
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"hf:s:",["filename=","solver="])
+    except getopt.GetoptError:
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt in ("-f", "--filename"):
+            filename = arg
+        elif opt in ("-s", "--solver"):
+            solver = arg
+        else:
+            print("Invalid argument")
+
+    print("\nSolving for problem {}...".format(filename))
+    et_problem = get_graph_data(filename)
+    if solver == "leap":
+        qm = CqmBuilder(et_problem).get_cqm()
+    else: 
+        qm = BqmBuilder(et_problem).get_bqm()
+    timetable = sample_and_get_results(solver, qm, et_problem, filename)

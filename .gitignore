@@ -3,6 +3,7 @@
 /test.py
 /src/__pycache__
 /__pycache__
-/timetabling_data/toronto_benchmark_data
+/timetabling_problems/toronto_benchmark_data
 /images
 /pickled-cqms
+/output

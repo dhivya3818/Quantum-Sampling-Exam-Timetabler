@@ -21,7 +21,7 @@ def get_graph_data(filename):
 
     # Determine if file is from test_data or toronto_benchmark_data
     if filename[-3:] == "txt":
-        file_path = "test_data/" + filename
+        file_path = filename
     else:
         file_path = "toronto_benchmark_data/" + filename
         num_days = timeslots[filename[:-4]]
@@ -29,7 +29,7 @@ def get_graph_data(filename):
         starting_index = 0
 
     # Open input file
-    input_file = open("./timetabling_data/" + file_path, 'r')
+    input_file = open("./timetabling_problems/" + file_path, 'r')
     input_lines = input_file.readlines()
     
     # Get parameters num_days and classrooms if file is from test_data folder

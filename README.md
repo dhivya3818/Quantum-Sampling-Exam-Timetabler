@@ -1,6 +1,7 @@
 # Exam Timetabling
 
-This app demonstrates how exam timetables can be optimised using D-Wave's Quantum Annealers.
+
+As part of my [final year thesis for Imperial College London](Final_Year_Project.pdf), this application demonstrates how exam timetables can be optimised using D-Wave's Quantum Annealers.
 
 Given a list of exams being sat by each student, we try to schedule these exams across a specified number of time slots so that conflicting exams (i.e. exams with shared resources such as students, classrooms, etc.) are spread out as much as possible.
 
